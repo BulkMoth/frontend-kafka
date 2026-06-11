@@ -6,6 +6,22 @@ spring:
     name: apigateway
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: 
+              - "http://localhost:5173"
+              - "http://localhost:5174"
+              - "http://127.0.0.1:5173"
+              - "http://127.0.0.1:5174"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
       discovery:
         locator:
           enabled: true
@@ -22,6 +38,10 @@ spring:
           uri: lb://PAGOS-SERVICE
           predicates:
             - Path=/pagos/**
+        - id: broker-message-be
+          uri: lb://BROKER-MESSAGE-BE
+          predicates:
+            - Path=/api/mail/**
 
 eureka:
   client:

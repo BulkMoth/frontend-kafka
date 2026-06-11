@@ -21,7 +21,16 @@ public class SendEmailEventStep extends AbstractEventStep {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("noreply@university.com");
-            message.setTo("cliente@university.com"); // Simplificado para el ejemplo
+            String recipient = "cliente@university.com";
+            if (context.getData().containsKey("usuarioId")) {
+                String usuarioId = context.getData().get("usuarioId").toString();
+                if (usuarioId.contains("@")) {
+                    recipient = usuarioId;
+                } else {
+                    recipient = usuarioId + "@university.com";
+                }
+            }
+            message.setTo(recipient);
             
             String subject = "Notificación de Sistema";
             String text = "Evento recibido: " + context.getTopic();

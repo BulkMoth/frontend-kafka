@@ -5,21 +5,7 @@
         </encoder>
     </appender>
 
-    <appender name="ASYNC_AWS_LOGS" class="ca.pjer.logback.AwsLogsAppender">
-        <layout>
-            <pattern>[%thread] %-5level %logger{36} - %msg%n</pattern>
-        </layout>
-        <logGroupName>producto-log-group</logGroupName>
-        <logStreamUuidPrefix>productos-service-</logStreamUuidPrefix>
-        <logRegion>us-east-1</logRegion>
-        <maxBatchLogEvents>50</maxBatchLogEvents>
-        <maxFlushTimeMillis>30000</maxFlushTimeMillis>
-        <maxBlockTimeMillis>5000</maxBlockTimeMillis>
-        <retentionTimeDays>0</retentionTimeDays>
-    </appender>
-
     <root level="INFO">
         <appender-ref ref="STDOUT" />
-        <appender-ref ref="ASYNC_AWS_LOGS" />
     </root>
 </configuration>

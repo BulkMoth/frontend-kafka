@@ -48,6 +48,14 @@ public class ProductoController {
                 throw new RuntimeException("Precio invalido. Simulando fallo para Retry Job.");
             }
             Producto saved = productoRepository.save(producto);
+            
+            // Emitir evento de actualización de inventario al crear
+            try {
+                kafkaTemplate.send("inventory_update_events", saved.getId(), new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(saved));
+            } catch (Exception e) {
+                // Loguear error pero no fallar la creación
+            }
+
             return new ResponseEntity<>(saved, HttpStatus.CREATED);
         } catch (Exception e) {
             Map<String, Object> payload = new HashMap<>();
@@ -72,7 +80,16 @@ public class ProductoController {
                 return ResponseEntity.notFound().build();
             }
             producto.setId(id);
-            return ResponseEntity.ok(productoRepository.save(producto));
+            Producto saved = productoRepository.save(producto);
+
+            // Emitir evento de actualización de inventario al actualizar
+            try {
+                kafkaTemplate.send("inventory_update_events", saved.getId(), new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(saved));
+            } catch (Exception e) {
+                // Loguear error
+            }
+
+            return ResponseEntity.ok(saved);
         } catch (Exception e) {
             Map<String, Object> payload = new HashMap<>();
             payload.put("data", producto);

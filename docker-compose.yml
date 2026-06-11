@@ -47,6 +47,9 @@ services:
       - EUREKA_HOST=eureka-server
       - MONGO_HOST=mongodb-ordenes
       - MONGO_PORT=27017
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_broker_db:5432/broker_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
       - KAFKA_HOST=kafka
       - KAFKA_PORT=29092
       - AWS_REGION=us-east-1

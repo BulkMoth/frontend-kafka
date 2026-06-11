@@ -26,8 +26,14 @@ public class PagoController {
     public ResponseEntity<?> procesarPago(@RequestBody Pago pago) {
         try {
             if (pago.getMonto() == null || pago.getMonto().doubleValue() <= 0) {
-                throw new RuntimeException("Monto invalido para procesar el pago");
+                return ResponseEntity.badRequest().body("Monto debe ser mayor a cero.");
             }
+
+            // Simulamos un fallo ocasional si el monto es exactamente 999 para probar el broker-message-be
+            if (pago.getMonto() != null && pago.getMonto().doubleValue() == 999) {
+                throw new RuntimeException("Monto de prueba 999 detectado. Simulando fallo para Retry Job.");
+            }
+
             pago.setStatus("PROCESADO");
             Pago saved = pagoRepository.save(pago);
 
@@ -49,6 +55,11 @@ public class PagoController {
         }
     }
 
+    @GetMapping
+    public List<Pago> getAllPagos() {
+        return pagoRepository.findAll();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Pago> getPagoById(@PathVariable String id) {
         return pagoRepository.findById(id)
@@ -59,6 +70,15 @@ public class PagoController {
     @GetMapping("/orden/{id}")
     public ResponseEntity<List<Pago>> getPagoByOrdenId(@PathVariable String id) {
         return ResponseEntity.ok(pagoRepository.findByOrdenId(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletePago(@PathVariable String id) {
+        if (!pagoRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        pagoRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/reembolso")

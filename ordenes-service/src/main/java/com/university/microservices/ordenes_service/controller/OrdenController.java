@@ -31,7 +31,12 @@ public class OrdenController {
     public ResponseEntity<?> createOrden(@RequestBody Orden orden) {
         try {
             if (orden.getProductosIds() == null || orden.getProductosIds().isEmpty()) {
-                throw new RuntimeException("La orden debe contener productos.");
+                return ResponseEntity.badRequest().body("La orden debe contener productos.");
+            }
+
+            // Simulamos un fallo ocasional si el total es negativo para probar el broker-message-be
+            if (orden.getTotal() != null && orden.getTotal().doubleValue() < 0) {
+                throw new RuntimeException("Total invalido. Simulando fallo para Retry Job.");
             }
 
             // Validar stock disponible
@@ -42,13 +47,16 @@ public class OrdenController {
                     if (producto == null) {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Producto no encontrado: " + productoId);
                     }
-                    Integer stock = (Integer) producto.get("stock");
+                    Integer stock = (Integer) producto.get("quantity");
                     if (stock == null || stock <= 0) {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No hay stock suficiente para el producto: " + productoId);
                     }
                 } catch (Exception e) {
-                    // Si falla el servicio de productos, lanzamos error
-                    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Error validando stock: " + e.getMessage());
+                    // Si falla el servicio de productos por algo que no sea 404, lanzamos error para retry
+                    if (e.getMessage().contains("404")) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Producto no encontrado: " + productoId);
+                    }
+                    throw new RuntimeException("Error validando stock (servicio productos no disponible): " + e.getMessage());
                 }
             }
 
@@ -105,6 +113,15 @@ public class OrdenController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateOrden(@PathVariable String id, @RequestBody Orden updatedOrden) {
         try {
+            if (!ordenRepository.existsById(id)) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Simulamos fallo para retry
+            if (updatedOrden.getTotal() != null && updatedOrden.getTotal().doubleValue() < 0) {
+                throw new RuntimeException("Total invalido en actualización. Simulando fallo para Retry Job.");
+            }
+
             return ordenRepository.findById(id).map(existingOrden -> {
                 boolean productsChanged = !existingOrden.getProductosIds().equals(updatedOrden.getProductosIds());
                 
@@ -122,8 +139,36 @@ public class OrdenController {
                 return ResponseEntity.ok(saved);
             }).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error actualizando orden: " + e.getMessage());
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("data", updatedOrden);
+            payload.put("action", "UPDATE_ORDER");
+            payload.put("error", e.getMessage());
+            try {
+                kafkaTemplate.send("order_retry_jobs", id, new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload));
+            } catch (Exception jsonEx) {}
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error actualizando orden, enviado a reintento: " + e.getMessage());
         }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteOrden(@PathVariable String id) {
+        if (!ordenRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Validar si la orden tiene pagos
+        try {
+            String url = "http://pagos-service:8083/pagos/orden/" + id;
+            List<?> pagos = restTemplate.getForObject(url, List.class);
+            if (pagos != null && !pagos.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("No se puede eliminar la orden porque tiene pagos asociados.");
+            }
+        } catch (Exception e) {
+            // Log error
+        }
+
+        ordenRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/status")
