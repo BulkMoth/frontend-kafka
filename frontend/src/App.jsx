@@ -8,6 +8,7 @@ function App() {
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
   const [payments, setPayments] = useState([])
+  const [loading, setLoading] = useState(false)
   const [logs, setLogs] = useState(["[SYSTEM] Initialized PC Master Admin Console..."])
 
   const [newProduct, setNewProduct] = useState({
@@ -35,12 +36,9 @@ function App() {
     fetchProducts()
     fetchOrders()
     fetchPayments()
-    fetchShipments()
 
-    // Auto-refresh for admin tracking
     const interval = setInterval(() => {
       fetchOrders()
-      fetchShipments()
       fetchPayments()
     }, 3000)
     return () => clearInterval(interval)
@@ -48,17 +46,6 @@ function App() {
 
   const addLog = (msg) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-8))
-  }
-
-  const fetchShipments = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/ordenes/envios`)
-      const data = await res.json()
-      setShipments(Array.isArray(data) ? data : [])
-    } catch (err) {
-      addLog("ERROR: Failed to fetch shipments")
-      setShipments([])
-    }
   }
 
   const fetchProducts = async () => {
@@ -246,7 +233,6 @@ function App() {
           <button className={view === 'admin_products' ? 'active' : ''} onClick={() => setView('admin_products')}>PRODUCTOS</button>
           <button className={view === 'admin_orders' ? 'active' : ''} onClick={() => setView('admin_orders')}>ORDENES</button>
           <button className={view === 'admin_payments' ? 'active' : ''} onClick={() => setView('admin_payments')}>PAGOS</button>
-          <button className={view === 'shipments' ? 'active' : ''} onClick={() => setView('shipments')}>ENVÍOS</button>
         </nav>
       </header>
 
@@ -355,34 +341,6 @@ function App() {
                   <div className="order-actions">
                     <button onClick={() => handleRefund(p.id)} disabled={p.status === 'REEMBOLSADO'}>REEMBOLSO</button>
                     <button className="delete-btn" onClick={() => handleDeletePayment(p.id)}>DELETE</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {view === 'shipments' && (
-          <div className="admin-panel">
-            <h2>&gt; PAID_ORDERS_LOGISTICS (POSTGRES)</h2>
-            <div className="order-list">
-              {shipments.length === 0 && (
-                <div className="terminal-line" style={{flexDirection: 'column', alignItems: 'center', padding: '40px'}}>
-                  <p>WAITING_FOR_PAID_ORDERS...</p>
-                  <p style={{fontSize: '0.8rem', color: '#64748b'}}>Go to PAGOS to process a pending order.</p>
-                </div>
-              )}
-              {shipments.map(s => (
-                <div key={s.id} className="order-item-card">
-                  <div className="order-header">
-                    <strong style={{color: '#fff'}}>GUÍA_ID: {s.id}</strong>
-                    <span className={`status ${s.status === 'SENT' ? 'status-paid' : 'status-pending'}`}>
-                      {s.status === 'SENT' ? 'DESPACHADO' : 'EN_PROCESO'}
-                    </span>
-                  </div>
-                  <div className="order-details">
-                    <span style={{color: 'var(--accent-color)'}}>ORDEN_REF:</span> {s.ordenId}<br/>
-                    <span style={{color: 'var(--accent-color)'}}>STATUS:</span> {s.status}<br/>
-                    <span style={{color: 'var(--accent-color)'}}>FECHA:</span> {s.sentAt ? new Date(s.sentAt).toLocaleString() : 'PENDIENTE_ENVIO'}
                   </div>
                 </div>
               ))}
