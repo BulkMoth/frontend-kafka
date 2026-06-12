@@ -380,9 +380,9 @@ function App() {
                     </span>
                   </div>
                   <div className="order-details">
-                    <span style={{color: var(--accent-color)}}>ORDEN_REF:</span> {s.ordenId}<br/>
-                    <span style={{color: var(--accent-color)}}>STATUS:</span> {s.status}<br/>
-                    <span style={{color: var(--accent-color)}}>FECHA:</span> {s.sentAt ? new Date(s.sentAt).toLocaleString() : 'PENDIENTE_ENVIO'}
+                    <span style={{color: 'var(--accent-color)'}}>ORDEN_REF:</span> {s.ordenId}<br/>
+                    <span style={{color: 'var(--accent-color)'}}>STATUS:</span> {s.status}<br/>
+                    <span style={{color: 'var(--accent-color)'}}>FECHA:</span> {s.sentAt ? new Date(s.sentAt).toLocaleString() : 'PENDIENTE_ENVIO'}
                   </div>
                 </div>
               ))}
