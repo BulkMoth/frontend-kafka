@@ -35,10 +35,22 @@ function App() {
     fetchProducts()
     fetchOrders()
     fetchPayments()
+    fetchShipments()
   }, [])
 
   const addLog = (msg) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-8))
+  }
+
+  const fetchShipments = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/ordenes/envios`)
+      const data = await res.json()
+      setShipments(Array.isArray(data) ? data : [])
+    } catch (err) {
+      addLog("ERROR: Failed to fetch shipments")
+      setShipments([])
+    }
   }
 
   const fetchProducts = async () => {
@@ -226,6 +238,7 @@ function App() {
           <button className={view === 'admin_products' ? 'active' : ''} onClick={() => setView('admin_products')}>PRODUCTOS</button>
           <button className={view === 'admin_orders' ? 'active' : ''} onClick={() => setView('admin_orders')}>ORDENES</button>
           <button className={view === 'admin_payments' ? 'active' : ''} onClick={() => setView('admin_payments')}>PAGOS</button>
+          <button className={view === 'shipments' ? 'active' : ''} onClick={() => setView('shipments')}>ENVÍOS</button>
         </nav>
       </header>
 
@@ -334,6 +347,26 @@ function App() {
                   <div className="order-actions">
                     <button onClick={() => handleRefund(p.id)} disabled={p.status === 'REEMBOLSADO'}>REEMBOLSO</button>
                     <button className="delete-btn" onClick={() => handleDeletePayment(p.id)}>DELETE</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {view === 'shipments' && (
+          <div className="admin-panel">
+            <h2>&gt; SHIPMENT_TRACKING (POSTGRES)</h2>
+            <div className="order-list">
+              {shipments.length === 0 && <p className="terminal-line">No shipments registered yet...</p>}
+              {shipments.map(s => (
+                <div key={s.id} className="order-item-card">
+                  <div className="order-header">
+                    <strong>GUÍA: {s.id}</strong>
+                    <span className={`status ${s.status === 'SENT' ? 'status-paid' : 'status-pending'}`}>{s.status}</span>
+                  </div>
+                  <div className="order-details">
+                    <span>Orden Ref: {s.ordenId}</span><br/>
+                    <span>Fecha: {s.sentAt ? new Date(s.sentAt).toLocaleString() : 'PENDIENTE'}</span>
                   </div>
                 </div>
               ))}
