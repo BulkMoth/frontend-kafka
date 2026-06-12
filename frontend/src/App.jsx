@@ -36,6 +36,14 @@ function App() {
     fetchOrders()
     fetchPayments()
     fetchShipments()
+
+    // Auto-refresh for admin tracking
+    const interval = setInterval(() => {
+      fetchOrders()
+      fetchShipments()
+      fetchPayments()
+    }, 3000)
+    return () => clearInterval(interval)
   }, [])
 
   const addLog = (msg) => {
@@ -355,18 +363,26 @@ function App() {
         )}
         {view === 'shipments' && (
           <div className="admin-panel">
-            <h2>&gt; SHIPMENT_TRACKING (POSTGRES)</h2>
+            <h2>&gt; PAID_ORDERS_LOGISTICS (POSTGRES)</h2>
             <div className="order-list">
-              {shipments.length === 0 && <p className="terminal-line">No shipments registered yet...</p>}
+              {shipments.length === 0 && (
+                <div className="terminal-line" style={{flexDirection: 'column', alignItems: 'center', padding: '40px'}}>
+                  <p>WAITING_FOR_PAID_ORDERS...</p>
+                  <p style={{fontSize: '0.8rem', color: '#64748b'}}>Go to PAGOS to process a pending order.</p>
+                </div>
+              )}
               {shipments.map(s => (
                 <div key={s.id} className="order-item-card">
                   <div className="order-header">
-                    <strong>GUÍA: {s.id}</strong>
-                    <span className={`status ${s.status === 'SENT' ? 'status-paid' : 'status-pending'}`}>{s.status}</span>
+                    <strong style={{color: '#fff'}}>GUÍA_ID: {s.id}</strong>
+                    <span className={`status ${s.status === 'SENT' ? 'status-paid' : 'status-pending'}`}>
+                      {s.status === 'SENT' ? 'DESPACHADO' : 'EN_PROCESO'}
+                    </span>
                   </div>
                   <div className="order-details">
-                    <span>Orden Ref: {s.ordenId}</span><br/>
-                    <span>Fecha: {s.sentAt ? new Date(s.sentAt).toLocaleString() : 'PENDIENTE'}</span>
+                    <span style={{color: var(--accent-color)}}>ORDEN_REF:</span> {s.ordenId}<br/>
+                    <span style={{color: var(--accent-color)}}>STATUS:</span> {s.status}<br/>
+                    <span style={{color: var(--accent-color)}}>FECHA:</span> {s.sentAt ? new Date(s.sentAt).toLocaleString() : 'PENDIENTE_ENVIO'}
                   </div>
                 </div>
               ))}
